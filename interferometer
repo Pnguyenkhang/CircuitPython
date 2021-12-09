@@ -1,0 +1,111 @@
+# Trinket IO demo
+# Welcome to CircuitPython! :)
+
+import usb_hid
+import board
+from digitalio import DigitalInOut, Direction, Pull
+from analogio import AnalogOut, AnalogIn
+import touchio
+from adafruit_hid.keyboard import Keyboard
+from adafruit_hid.keycode import Keycode
+import adafruit_dotstar as dotstar
+import time
+import neopixel
+import math
+
+
+
+# Analog input on D0
+#analog1in = AnalogIn(board.D0)
+
+PD1 = AnalogIn(board.A2)
+PD2 = AnalogIn(board.A1)
+
+# Analog output on D1
+aout = AnalogOut(board.D1)
+
+
+
+
+######################### HELPERS ##############################
+
+# Helper to convert analog input to voltage
+def getVoltage(pin):
+    return (pin.value * 3.3) / 65536
+
+
+######################### MAIN LOOP ##############################
+
+i = 0
+max_v_1 = 0
+min_v_1 = 10000
+max_v_2 = 0
+min_v_2 = 10000
+total = 0
+Num_turns = 0
+actual_angle = 0
+actual_angle_2 = 0
+# start w displacement
+prev_angle = 0
+
+
+while True:
+
+    # Read analog voltage and get voltage readings on both pd1 and pd2
+    v_2 = getVoltage(PD2)
+    v_1 = getVoltage(PD1)
+  
+    # get maximum size
+    if max_v_1 < v_1:
+        max_v_1 = v_1
+      
+    # get minimum size
+    if min_v_1 > v_1:
+        min_v_1 = v_1
+
+        # get maximum size
+    if max_v_2 < v_2:
+        max_v_2 = v_2
+      
+    # get minimum size
+    if min_v_2 > v_2:
+        min_v_2 = v_2
+    
+    # get new center
+    center_x = (max_v_1 - min_v_1)/2
+    center_y = (max_v_2 - min_v_2)/2
+    
+    x = v_1 - center_x
+    y = v_2 - center_y
+    
+    curr_angle = math.atan2(y,x) * 180/math.pi
+    print('curr',curr_angle)
+    
+    diff = curr_angle - prev_angle
+    actual_angle = curr_angle
+    # b/c pi to pi2
+    if diff > 180:
+        print("HI")
+        actual_angle -= 2*math.pi
+    if diff < -180:
+        print("negative")
+        actual_angle += 2*math.pi
+    
+    print('actual',actual_angle,'prev angle',prev_angle,'diff',diff, 'total',total)
+    print((actual_angle,prev_angle))
+    print(((actual_angle%360)/360)*65535)
+    
+        
+    prev_angle = actual_angle
+    # find # of turns
+    Num_turns = actual_angle // 360
+    print('number of turns:',Num_turns)
+    
+    actual_angle_2 += actual_angle + 33
+    print(((actual_angle_2%360)/360)*65535)
+    # plot graph
+    #print((v_1,v_2, angle))
+     # set analog output to 0-3.3V (0-65535 in increments)
+    aout.value = int(((actual_angle_2%360)/360)*65535)
+
+    time.sleep(0.5) # make bigger to slow down
